@@ -24,8 +24,4 @@ model = get_model(model_id="playing-cards-ow27d/4", api_key=api_key)
 results = model.infer(frame)[0]
 detections = sv.Detections.from_inference(results)
 
-labels = [results.predictions[i].class_name for i in range(len(detections))]
-
-print("Detected cards:")
-for card in labels:
-    print(f"  - {card}")
+cards = [results.predictions[i].class_name for i in range(len(detections))]
