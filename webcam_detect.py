@@ -1,41 +1,31 @@
+import sys
 import os
 from inference import get_model
 import supervision as sv
 import cv2
 
-# open the default webcam (device 0)
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    raise RuntimeError("Unable to open webcam")
+if len(sys.argv) != 2:
+    print("Usage: python webcam_detect.py <image.jpg>")
+    sys.exit(1)
 
-# load a pre-trained model once
+image_path = sys.argv[1]
+if not os.path.isfile(image_path):
+    print(f"File not found: {image_path}")
+    sys.exit(1)
+
+frame = cv2.imread(image_path)
+if frame is None:
+    print(f"Could not read image: {image_path}")
+    sys.exit(1)
+
 api_key = "***REMOVED***"
 model = get_model(model_id="playing-cards-ow27d/4", api_key=api_key)
 
-# create supervision annotators outside the loop
-bounding_box_annotator = sv.BoxAnnotator()
-label_annotator = sv.LabelAnnotator()
+results = model.infer(frame)[0]
+detections = sv.Detections.from_inference(results)
 
-# process frames until the user quits
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+labels = [results.predictions[i].class_name for i in range(len(detections))]
 
-    # run inference on the current frame
-    results = model.infer(frame)[0]
-    detections = sv.Detections.from_inference(results)
-
-    # annotate the frame
-    annotated = bounding_box_annotator.annotate(scene=frame, detections=detections)
-    annotated = label_annotator.annotate(scene=annotated, detections=detections)
-
-    # show the annotated frame in a window
-    cv2.imshow("webcam detection", annotated)
-
-    # press q to quit
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+print("Detected cards:")
+for card in labels:
+    print(f"  - {card}")
